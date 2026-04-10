@@ -16,3 +16,6 @@ flask-mail==0.10.0
 psutil==7.1.0
 flask-jwt-extended==4.7.1
 email-validator==2.2.0
+requests==2.33.1
+supabase==2.28.3
+filetype==1.2.0

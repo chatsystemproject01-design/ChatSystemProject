@@ -12,3 +12,5 @@ dist/
 .vscode/
 .idea/
 *.log
+start_with_nport.bat
+nport
