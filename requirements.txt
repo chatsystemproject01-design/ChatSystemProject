@@ -11,3 +11,4 @@ pydantic-settings
 pydantic
 flasgger
 eventlet
+gunicorn
