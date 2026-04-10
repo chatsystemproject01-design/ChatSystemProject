@@ -12,3 +12,4 @@ pydantic
 flasgger
 eventlet
 gunicorn
+flask-mail

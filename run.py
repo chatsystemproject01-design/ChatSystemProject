@@ -1,6 +1,7 @@
-import os
 import eventlet
 eventlet.monkey_patch()
+
+import os
 
 import warnings
 

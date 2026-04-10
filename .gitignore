@@ -1,3 +1,14 @@
 .env
 Docs
 RULE.md
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+build/
+dist/
+.vscode/
+.idea/
+*.log
