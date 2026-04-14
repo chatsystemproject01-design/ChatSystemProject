@@ -27,7 +27,8 @@ def create_app():
         MAIL_PASSWORD=configs.EMAIL_PASSWORD,
         MAIL_DEFAULT_SENDER=configs.EMAIL_FROM,
         MAIL_USE_TLS=configs.EMAIL_USE_TLS,
-        MAIL_USE_SSL=configs.EMAIL_USE_SSL
+        MAIL_USE_SSL=configs.EMAIL_USE_SSL,
+        MAIL_DEBUG=True
     )
     
     # Initialize extensions

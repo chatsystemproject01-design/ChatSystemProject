@@ -10,7 +10,11 @@ executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 def send_async_email(app, msg):
     with app.app_context():
         try:
-            print(f">>> [EMAIL] Đang kết nối tới SMTP Server (SSL/TLS) để gửi đến {msg.recipients}...", flush=True)
+            import socket
+            # Thiết lập timeout 10 giây để tránh treo cả process trên Render
+            socket.setdefaulttimeout(10)
+            
+            print(f">>> [EMAIL] Đang kết nối tới SMTP Server: {app.config.get('MAIL_SERVER')}:{app.config.get('MAIL_PORT')}...", flush=True)
             mail.send(msg)
             print(f">>> [SUCCESS] Đã gửi OTP thành công tới {msg.recipients}", flush=True)
         except Exception as e:
