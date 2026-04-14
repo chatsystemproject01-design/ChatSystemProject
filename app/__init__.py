@@ -64,8 +64,9 @@ def create_app():
         if request.method == 'OPTIONS':
             return
             
-        # 2. Cho phép các API Auth không xác thực đi qua
-        if request.path.startswith('/api/v1/auth'):
+        # 2. Cho phép các API Auth và Tài liệu API (Swagger) đi qua
+        exempt_paths = ['/api/v1/auth', '/apidocs', '/flasgger', '/apispec']
+        if any(request.path.startswith(path) for path in exempt_paths):
             return
             
         try:
