@@ -19,4 +19,10 @@ if __name__ == '__main__':
         print("Server is running at: http://localhost:5000")
         print("Swagger UI: http://localhost:5000/apidocs")
 
-    socketio.run(app, host='0.0.0.0', port=5000, debug=(app.config.get('FLASK_ENV') == 'development'))
+    socketio.run(
+        app, 
+        host='0.0.0.0', 
+        port=5000, 
+        debug=(app.config.get('FLASK_ENV') == 'development'),
+        use_reloader=False
+    )

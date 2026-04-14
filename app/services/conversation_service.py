@@ -172,6 +172,21 @@ class ConversationService:
                 name = other_p.user.full_name
                 avatar = other_p.user.avatar_url
 
+        # 4. Lấy tin nhắn ghim (Pinned Message)
+        pinned_msg = db.session.query(Message).filter(
+            Message.conversation_id == conversation_id,
+            Message.is_pinned == True,
+            Message.is_deleted == False
+        ).order_by(Message.updated_at.desc()).first()
+
+        pinned_data = None
+        if pinned_msg:
+            pinned_data = {
+                "messageId": pinned_msg.message_id,
+                "content": CryptoUtils.decrypt(pinned_msg.message_content),
+                "senderName": pinned_msg.sender.full_name
+            }
+
         return {
             "conversationId": conv.conversation_id,
             "conversationName": name,
@@ -179,7 +194,8 @@ class ConversationService:
             "isGroup": conv.is_group,
             "createdBy": conv.created_by,
             "createdAt": conv.created_at.isoformat(),
-            "roleInGroup": participant.role_in_group
+            "roleInGroup": participant.role_in_group,
+            "pinnedMessage": pinned_data
         }
 
     def delete_conversation(self, user_id, conversation_id):
@@ -328,13 +344,24 @@ class ConversationService:
         result = []
         for msg in messages:
             decrypted_content = CryptoUtils.decrypt(msg.message_content)
-            result.append({
+            msg_data = {
                 "messageId": msg.message_id,
                 "content": decrypted_content,
                 "senderId": str(msg.sender_id),
                 "messageType": msg.message_type,
                 "createdAt": msg.created_at.isoformat()
-            })
+            }
+            
+            # Đính kèm thông tin media nếu có
+            if msg.message_type in ['voice', 'media'] and msg.attachments:
+                attachment = msg.attachments[0]
+                if msg.message_type == 'voice':
+                    msg_data["audioUrl"] = attachment.file_url
+                    msg_data["duration"] = attachment.duration
+                else:
+                    msg_data["fileUrl"] = attachment.file_url
+                    
+            result.append(msg_data)
 
         return result
 
@@ -387,6 +414,13 @@ class ConversationService:
             "senderId": str(user_id),
             "content": content, 
             "createdAt": msg.created_at.isoformat()
+        }, room=f"conversation_{conversation_id}")
+
+        # 7. Tự động tắt trạng thái "đang nhập" sau khi gửi tin nhắn
+        socketio.emit('user_typing', {
+            'conversationId': conversation_id,
+            'userId': str(user_id),
+            'isTyping': False
         }, room=f"conversation_{conversation_id}")
 
         return {"messageId": msg.message_id}

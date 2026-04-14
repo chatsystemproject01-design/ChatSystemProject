@@ -7,14 +7,25 @@ class SecurityUtils:
         r'tấn công', r'hack', r'virus', r'malware'
     ]
 
+    # Danh sách từ ngữ độc hại/xúc phạm (Toxicity)
+    TOXIC_WORDS = [
+        r'ngu', r'vãi', r'chó', r'mẹ', r'đéo', r'cứt', r'cặc', r'lồn', r'đm', r'vcl', r'cc'
+    ]
+
     @classmethod
     def scan_sensitive_content(cls, text: str) -> bool:
         """
         Quét nội dung nhạy cảm sử dụng Regex (DLP).
-        Trả về True nếu phát hiện nội dung nhạy cảm.
         """
-        if not text:
-            return False
-            
-        combined_regex = re.compile('|'.join(cls.SENSITIVE_WORDS), re.IGNORECASE)
-        return bool(combined_regex.search(text))
+        if not text: return False
+        combined = re.compile('|'.join(cls.SENSITIVE_WORDS), re.IGNORECASE)
+        return bool(combined.search(text))
+
+    @classmethod
+    def scan_toxic_content(cls, text: str) -> bool:
+        """
+        Quét từ ngữ độc hại/xúc phạm (Local Filter).
+        """
+        if not text: return False
+        combined = re.compile('|'.join(cls.TOXIC_WORDS), re.IGNORECASE)
+        return bool(combined.search(text))

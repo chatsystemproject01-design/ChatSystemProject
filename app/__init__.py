@@ -36,7 +36,7 @@ def create_app():
     from app import models
     
     # Import socket events
-    from app.sockets import chat_events
+    from app.sockets import chat_events, call_events
     
     # Register blueprints
     from app.controllers.auth_controller import auth_bp
@@ -55,7 +55,44 @@ def create_app():
     
     # Centralized error handling
     from app.utils.exceptions import ApplicationError
-    
+
+    @app.before_request
+    def check_maintenance_mode():
+        from flask import request, jsonify
+        
+        # 1. Cho phép CORS Preflight (OPTIONS) đi qua để không lỗi Frontend
+        if request.method == 'OPTIONS':
+            return
+            
+        # 2. Cho phép các API Auth không xác thực đi qua
+        if request.path.startswith('/api/v1/auth'):
+            return
+            
+        try:
+            from app.models.system_config import SystemConfig
+            config = SystemConfig.get_config()
+            if not config.is_maintenance_mode:
+                return
+                
+            # 3. Cho phép Admin truy cập mọi lúc
+            from flask_jwt_extended import verify_jwt_in_request, get_jwt
+            try:
+                verify_jwt_in_request(optional=True)
+                claims = get_jwt()
+                if claims.get('role', '').lower() == 'admin':
+                    return
+            except Exception:
+                pass 
+
+            return jsonify({
+                "success": False,
+                "message": "Hệ thống đang được bảo trì. Vui lòng quay lại sau."
+            }), 503
+        except Exception as e:
+            app.logger.error(f"Error in maintenance check: {str(e)}")
+            pass
+
+
     @app.errorhandler(ApplicationError)
     def handle_application_error(error):
         response = {

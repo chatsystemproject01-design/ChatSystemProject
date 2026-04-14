@@ -57,6 +57,14 @@ def register():
       400:
         description: Lỗi validate hoặc Email đã tồn tại
     """
+    # Check server config
+    from app.models.system_config import SystemConfig
+    config = SystemConfig.get_config()
+    if not config.is_registration_enabled:
+        from app.utils.errors import ForbiddenError
+        from flask import abort
+        abort(403, "Tính năng đăng ký tài khoản hiện đang bị khóa bởi Quản trị viên.")
+
     # 1. Parse JSON request
     json_data = request.get_json()
     if not json_data:

@@ -11,7 +11,7 @@ class MediaService:
         self.message_repo = MessageRepository()
         self.conv_repo = ConversationRepository()
 
-    def upload_media(self, user_id, file_obj, conversation_id=None):
+    def upload_media(self, user_id, file_obj, conversation_id=None, message_type="media", duration=None):
         """
         Quy trình 1 bước: Upload tệp tin và tự động gửi tin nhắn nếu có conversation_id.
         """
@@ -43,14 +43,17 @@ class MediaService:
         message_id = None
         if conversation_id:
             # Mã hóa URL để lưu vào message_content (cho đồng bộ logic chat history)
-            display_content = f"Sent a file: {filename}"
+            if message_type == 'voice':
+                display_content = "Voice message"
+            else:
+                display_content = f"Sent a file: {filename}"
             encrypted_url = CryptoUtils.encrypt(display_content)
             
             msg = self.message_repo.create(
                 conversation_id=conversation_id,
                 sender_id=user_id,
                 message_content=encrypted_url,
-                message_type="media",
+                message_type=message_type,
                 is_toxic=False # Đã qua Magic Bytes check
             )
             message_id = msg.message_id
@@ -58,15 +61,19 @@ class MediaService:
             # Trigger Socket REALTIME
             try:
                 from app.extensions import socketio
-                socketio.emit('new_message', {
+                socket_data = {
                     "messageId": msg.message_id,
                     "conversationId": conversation_id,
                     "senderId": str(user_id),
                     "content": display_content,
-                    "messageType": "media",
+                    "messageType": message_type,
                     "fileUrl": upload_result['url'],
                     "createdAt": msg.created_at.isoformat()
-                }, room=f"conversation_{conversation_id}")
+                }
+                if message_type == 'voice' and duration is not None:
+                    socket_data["duration"] = duration
+                    
+                socketio.emit('new_message', socket_data, room=f"conversation_{conversation_id}")
             except:
                 pass # Bỏ qua nếu socket lỗi, ưu tiên HTTP success
 
@@ -78,7 +85,8 @@ class MediaService:
             mime_type=kind.mime,
             file_size=upload_result['size'],
             magic_bytes_status="validated",
-            is_secure=True
+            is_secure=True,
+            duration=duration
         )
 
         return {

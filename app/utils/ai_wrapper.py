@@ -96,19 +96,18 @@ Trả lời:"""
             "Content-Type": "application/json"
         }
 
-        prompt = f"""Phân tích đoạn văn bản sau đây xem có chứa từ ngữ độc hại, xúc phạm, lăng mạ hoặc vi phạm đạo đức không. 
-Trả về kết quả dưới dạng JSON: {{"isToxic": true/false, "reason": "Lý do ngắn gọn bằng tiếng Việt"}}.
+        prompt = f"""Phân tích đoạn văn bản sau đây xem có chứa từ ngữ độc hại, xúc phạm hoặc thô tục không.
+Chỉ trả về JSON theo mẫu: {{"isToxic": true/false, "reason": "Lý do bằng tiếng Việt"}}.
 
-Văn bản: "{text}"
+Văn bản: "{text}\"
 JSON:"""
 
         payload = {
             "model": configs.AI_MODEL,
             "messages": [
-                {"role": "system", "content": "Bạn là chuyên gia kiểm duyệt nội dung. Chỉ trả về JSON."},
+                {"role": "system", "content": "Bạn là chuyên gia kiểm duyệt. Bạn LUÔN LUÔN trả về JSON."},
                 {"role": "user", "content": prompt}
-            ],
-            "response_format": {"type": "json_object"}
+            ]
         }
 
         try:

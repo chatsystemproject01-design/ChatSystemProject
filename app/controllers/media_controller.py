@@ -46,9 +46,20 @@ def upload_media():
     conversation_id = request.form.get('conversationId')
     if conversation_id:
         conversation_id = int(conversation_id)
+        
+    message_type = request.form.get('messageType', 'media')
+    duration = request.form.get('duration')
+    
+    if duration is not None:
+        try:
+            duration = int(duration)
+            if duration > 600: # Max 10 minutes
+                raise ValidationError("Thời lượng tin nhắn thoại không vượt quá 10 phút.")
+        except ValueError:
+            raise ValidationError("Thời lượng phải là một số nguyên (giây).")
 
     user_id = get_jwt_identity()
-    result = media_service.upload_media(user_id, file, conversation_id)
+    result = media_service.upload_media(user_id, file, conversation_id, message_type, duration)
     
     return jsonify({
         "success": True,

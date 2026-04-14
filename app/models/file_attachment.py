@@ -12,6 +12,7 @@ class FileAttachment(db.Model):
     mime_type = db.Column(db.String(100))
     magic_bytes_status = db.Column(db.String(50))
     is_secure = db.Column(db.Boolean, default=True)
+    duration = db.Column(db.Integer, nullable=True) # Duration in seconds for voice/audio
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):

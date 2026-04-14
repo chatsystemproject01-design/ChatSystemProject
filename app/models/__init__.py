@@ -23,3 +23,5 @@ from .report import Report
 from .contact import Contact
 from .audit_log import AdminAuditLog
 from .blocked_user import BlockedUser
+from .call_log import CallLog
+from .system_config import SystemConfig

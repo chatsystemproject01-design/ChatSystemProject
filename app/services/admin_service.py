@@ -54,6 +54,26 @@ class AdminService:
             } for u in pending_users
         ]
 
+    def get_all_users(self, offset=0, limit=50):
+        # Truy vấn tất cả các user chưa bị xóa
+        users = User.query.filter(
+            User.is_deleted == False
+        ).order_by(User.full_name.asc())\
+         .offset(offset).limit(limit).all()
+
+        return [
+            {
+                "userId": str(u.user_id),
+                "fullName": u.full_name,
+                "email": u.email,
+                "phone": u.phone_number,
+                "position": u.position,
+                "role": 'admin' if u.role_id == 1 else 'staff',
+                "status": u.status,
+                "createdAt": u.created_at.isoformat()
+            } for u in users
+        ]
+
     def create_user(self, admin_id, data, ip_address):
         from app.extensions import bcrypt
         from app.models.role import Role
@@ -355,3 +375,108 @@ class AdminService:
         except Exception as e:
             db.session.rollback()
             raise e
+
+    def get_conversation_audit(self, admin_id, conversation_id, ip_address):
+        from app.models.message import Message
+        from app.models.audit_log import AdminAuditLog
+        from app.utils.crypto import CryptoUtils
+        
+        # 1. Ghi log truy cập bí mật (Bắt buộc theo yêu cầu)
+        log = AdminAuditLog(
+            admin_id=admin_id,
+            action_type="AUDIT_CHAT_HISTORY",
+            target_id=str(conversation_id),
+            description=f"Admin accessed chat history for conversation {conversation_id} for investigation.",
+            ip_address=ip_address
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        # 2. Lấy tin nhắn
+        messages = Message.query.filter(Message.conversation_id == conversation_id)\
+            .order_by(Message.created_at.asc()).all()
+            
+        return [
+            {
+                "messageId": str(m.message_id),
+                "senderId": str(m.sender_id),
+                "senderName": m.sender.full_name if m.sender else "Unknown",
+                "content": CryptoUtils.decrypt(m.message_content) if m.message_type == 'text' else "[File/Image Attachment]",
+                "type": m.message_type,
+                "isToxic": m.is_toxic,
+                "createdAt": m.created_at.isoformat()
+            } for m in messages
+        ]
+
+    def get_all_conversations(self, offset=0, limit=50):
+        from app.models.conversation import Conversation
+        
+        convs = Conversation.query.filter(Conversation.is_deleted == False)\
+            .order_by(Conversation.created_at.desc())\
+            .offset(offset).limit(limit).all()
+            
+        return [
+            {
+                "conversationId": c.conversation_id,
+                "conversationName": c.conversation_name or "Chat cá nhân",
+                "isGroup": c.is_group,
+                "updatedAt": c.created_at.isoformat()
+            } for c in convs
+        ]
+
+    def update_registration_config(self, admin_id, is_enabled, ip_address):
+        from app.models.system_config import SystemConfig
+        from app.models.audit_log import AdminAuditLog
+        
+        config = SystemConfig.get_config()
+        config.is_registration_enabled = is_enabled
+        
+        log = AdminAuditLog(
+            admin_id=admin_id,
+            action_type="UPDATE_CONFIG_REGISTRATION",
+            target_id="system",
+            description=f"Admin turned {'ON' if is_enabled else 'OFF'} public registration.",
+            ip_address=ip_address
+        )
+        db.session.add(log)
+        db.session.commit()
+        return {"isEnabled": config.is_registration_enabled}
+
+    def update_maintenance_config(self, admin_id, is_maintenance, ip_address):
+        from app.models.system_config import SystemConfig
+        from app.models.audit_log import AdminAuditLog
+        
+        config = SystemConfig.get_config()
+        config.is_maintenance_mode = is_maintenance
+        
+        log = AdminAuditLog(
+            admin_id=admin_id,
+            action_type="UPDATE_CONFIG_MAINTENANCE",
+            target_id="system",
+            description=f"Admin turned {'ON' if is_maintenance else 'OFF'} maintenance mode.",
+            ip_address=ip_address
+        )
+        db.session.add(log)
+        db.session.commit()
+        return {"isMaintenance": config.is_maintenance_mode}
+
+    def check_system_health(self):
+        status = {
+            "database": "disconnected",
+            "socket": "stable",
+            "firebase": "disconnected"
+        }
+        try:
+            db.session.execute(db.text('SELECT 1'))
+            status["database"] = "connected"
+        except:
+            pass
+            
+        try:
+            import firebase_admin
+            if firebase_admin._apps:
+                status["firebase"] = "connected"
+        except:
+            pass
+            
+        return status

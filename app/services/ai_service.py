@@ -87,16 +87,16 @@ class AIService:
         if not text:
             raise ValidationError("Văn bản không được để trống.")
 
-        # 1. Kiểm tra Regex (DLP)
+        # 1. Kiểm tra Regex (DLP - Bảo mật)
         from app.utils.security import SecurityUtils
-        is_sensitive = SecurityUtils.scan_sensitive_content(text)
-        if is_sensitive:
-            return {
-                "isToxic": True,
-                "reason": "Phát hiện từ ngữ nhạy cảm/bí mật của công ty (DLP)."
-            }
+        if SecurityUtils.scan_sensitive_content(text):
+            return {"isToxic": True, "reason": "Phát hiện từ ngữ nhạy cảm/bí mật của công ty (DLP)."}
 
-        # 2. Gửi sang AI để phân tích thái độ
+        # 2. Kiểm tra Regex (Toxicity - Từ ngữ thô tục local)
+        if SecurityUtils.scan_toxic_content(text):
+            return {"isToxic": True, "reason": "Tin nhắn chứa từ ngữ toxic/xúc phạm (Bộ lọc cục bộ)."}
+
+        # 3. Gửi sang AI để phân tích thái độ/ngữ cảnh chuyên sâu
         is_toxic, reason = AIWrapper.analyze_toxicity(text)
 
         return {
