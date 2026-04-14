@@ -19,16 +19,17 @@ def send_async_email(app, msg):
 
 def send_otp_email(to_email, otp_code):
     """
-    Gửi mã OTP xác thực qua email (Rule 7: Xử lý bất đồng bộ bằng Thread)
+    Gửi mã OTP xác thực qua email
     """
     subject = "Mã xác thực tài khoản - Nội bộ"
     body = f"Chào bạn,\n\nMã OTP kích hoạt tài khoản của bạn là: {otp_code}\n\nMã này có hiệu lực trong 5 phút.\n\nTrân trọng."
     
     msg = Message(subject, recipients=[to_email], body=body)
     
-    # Lấy app object thực tế để đưa vào context của thread
-    app = current_app._get_current_object()
-    
-    # Rule 7: Chạy bất đồng bộ để tránh block người dùng
-    thread = threading.Thread(target=send_async_email, args=(app, msg))
-    thread.start()
+    try:
+        mail.send(msg)
+        print(f">>> Đã gửi OTP thành công tới {to_email}")
+    except Exception as e:
+        print(f">>> LỖI GỬI MAIL: {str(e)}")
+        # Trong môi trường production, chúng ta nên log lại lỗi thay vì app crash
+        raise e
