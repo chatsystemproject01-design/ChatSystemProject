@@ -41,7 +41,7 @@ jwt = JWTManager()
 def init_extensions(app):
     db.init_app(app)
     bcrypt.init_app(app)
-    socketio.init_app(app, cors_allowed_origins="*", async_mode=app.config.get('SOCKETIO_ASYNC_MODE'))
+    socketio.init_app(app, cors_allowed_origins="*", async_mode='threading')
     migrate.init_app(app, db)
     cors.init_app(app)
     mail.init_app(app)
