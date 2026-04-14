@@ -1,16 +1,14 @@
 from app import create_app
-from app.utils.email import send_async_email
-from flask_mail import Message
+from app.utils.email import send_otp_email
+import time
 import sys
 
 app = create_app()
 
 with app.app_context():
-    msg = Message("Test Email", recipients=["duydien3504@gmail.com"], body="Test from server")
-    print("Sending test email...", flush=True)
-    try:
-        import app.extensions as ext
-        ext.mail.send(msg)
-        print("Success!", flush=True)
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr, flush=True)
+    print("Testing send_otp_email (async)...", flush=True)
+    send_otp_email("duydien3504@gmail.com", "123456")
+
+    print("Waiting 10 seconds for background task to complete or timeout...", flush=True)
+    time.sleep(10)
+    print("Test script finished.", flush=True)

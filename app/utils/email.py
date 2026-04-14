@@ -10,9 +10,24 @@ def send_async_email(app, msg):
     """
     with app.app_context():
         try:
-            print(f">>> [EMAIL] Đang kết nối tới SMTP Server (465/SSL) để gửi đến {msg.recipients}...", flush=True)
-            mail.send(msg)
-            print(f">>> [SUCCESS] Đã gửi OTP thành công tới {msg.recipients}", flush=True)
+            # Lấy cấu hình thực tế để log chính xác
+            host = app.config.get('MAIL_SERVER')
+            port = app.config.get('MAIL_PORT')
+            use_tls = app.config.get('MAIL_USE_TLS')
+            use_ssl = app.config.get('MAIL_USE_SSL')
+
+            print(f">>> [EMAIL] Đang kết nối tới SMTP Server {host}:{port} (TLS={use_tls}, SSL={use_ssl}) để gửi đến {msg.recipients}...", flush=True)
+
+            # Sử dụng Timeout để tránh treo worker nếu SMTP server không phản hồi
+            import eventlet
+            with eventlet.Timeout(30, False): # Timeout sau 30 giây, không raise exception ngay mà trả về False nếu timeout
+                mail.send(msg)
+                print(f">>> [SUCCESS] Đã gửi OTP thành công tới {msg.recipients}", flush=True)
+                return True
+
+            # Nếu chạy đến đây tức là bị Timeout
+            print(f">>> [EMAIL ERROR] Timeout khi gửi email tới {msg.recipients} sau 30 giây.", file=sys.stderr, flush=True)
+
         except Exception as e:
             error_msg = f">>> [EMAIL ERROR] Thất bại khi gửi tới {msg.recipients}. Lỗi: {str(e)}"
             print(error_msg, file=sys.stderr, flush=True)
