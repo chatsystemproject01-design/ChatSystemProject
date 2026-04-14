@@ -17,19 +17,27 @@ def send_async_email(app, msg):
             with open("email_error.log", "a") as f:
                 f.write(f"{error_msg} at {datetime.now()}\n")
 
+def send_async_email(app, msg):
+    with app.app_context():
+        try:
+            mail.send(msg)
+            print(f">>> [SUCCESS] Đã gửi OTP thành công tới {msg.recipients}")
+        except Exception as e:
+            print(f">>> [EMAIL ERROR] {str(e)}")
+
 def send_otp_email(to_email, otp_code):
     """
-    Gửi mã OTP xác thực qua email
+    Gửi mã OTP xác thực qua email (Chạy ngầm để không gây lỗi 502)
     """
     subject = "Mã xác thực tài khoản - Nội bộ"
     body = f"Chào bạn,\n\nMã OTP kích hoạt tài khoản của bạn là: {otp_code}\n\nMã này có hiệu lực trong 5 phút.\n\nTrân trọng."
     
     msg = Message(subject, recipients=[to_email], body=body)
     
-    try:
-        mail.send(msg)
-        print(f">>> Đã gửi OTP thành công tới {to_email}")
-    except Exception as e:
-        print(f">>> LỖI GỬI MAIL: {str(e)}")
-        # Trong môi trường production, chúng ta nên log lại lỗi thay vì app crash
-        raise e
+    # Lấy app object thực tế
+    app = current_app._get_current_object()
+    
+    # Chạy trong thread riêng để tránh làm timeout request
+    import threading
+    thread = threading.Thread(target=send_async_email, args=(app, msg))
+    thread.start()
