@@ -34,5 +34,6 @@ if __name__ == '__main__':
         host='0.0.0.0', 
         port=port, 
         debug=is_dev,
-        use_reloader=is_dev  # Tự động reload trên Windows, tắt trên Railway để ổn định
+        use_reloader=is_dev,  # Tự động reload trên Windows, tắt trên Railway để ổn định
+        allow_unsafe_werkzeug=True
     )
