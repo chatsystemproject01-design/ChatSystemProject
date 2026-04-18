@@ -68,9 +68,9 @@ def create_app():
     def check_maintenance_mode():
         from flask import request, jsonify
         
-        # 1. Cho phép CORS Preflight (OPTIONS) đi qua để không lỗi Frontend
+        # 1. Trả về 200 OK ngay lập tức cho CORS Preflight (OPTIONS) để không lỗi 502
         if request.method == 'OPTIONS':
-            return
+            return '', 200
             
         # 2. Cho phép các API Auth và Tài liệu API (Swagger) đi qua
         exempt_paths = ['/api/v1/auth', '/apidocs', '/flasgger', '/apispec']
