@@ -2,7 +2,7 @@
 # Document: https://fly.io/docs/reference/configuration/
 
 # Tên ứng dụng của bạn (Sửa thành tên app bạn tạo trên fly.io)
-app = "chatsystem-backend" 
+app = "chatsystemproject" 
 
 # Region được chọn (Nên để 'sin' - Singapore cho tốc độ về Việt Nam nhanh nhất)
 primary_region = "sin"     
