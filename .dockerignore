@@ -1,0 +1,42 @@
+# Bỏ qua các tệp môi trường cục bộ để tránh rò rỉ secret
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.log
+
+# Môi trường ảo (Virtual Env)
+.venv/
+venv/
+ENV/
+env/
+
+# IDE & Editor
+.vscode/
+.idea/
+
+# Thư mục build / phân phối
+build/
+dist/
+*.egg-info/
+
+# Bỏ qua các script test cục bộ và markdown documents
+tests/
+scratch/
+check/
+Docs/
+Voice.md
+Typing.md
+Call.md
+RULE.md
+nport/
+start_with_nport.bat

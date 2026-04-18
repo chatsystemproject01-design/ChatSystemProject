@@ -1,0 +1,33 @@
+# fly.toml app configuration file
+# Document: https://fly.io/docs/reference/configuration/
+
+# Tên ứng dụng của bạn (Sửa thành tên app bạn tạo trên fly.io)
+app = "chatsystem-backend" 
+
+# Region được chọn (Nên để 'sin' - Singapore cho tốc độ về Việt Nam nhanh nhất)
+primary_region = "sin"     
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  FLASK_ENV = "production"
+  PORT = "8080"
+  SOCKETIO_ASYNC_MODE = "eventlet"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  
+  # CỰC KỲ QUAN TRỌNG: Tắt auto_stop và mở auto_start
+  # Ứng dụng chat/websocket cần duy trì machine liên tục
+  auto_stop_machines = false 
+  auto_start_machines = true
+  
+  min_machines_running = 1
+  processes = ["app"]
+  
+  [http_service.concurrency] 
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200

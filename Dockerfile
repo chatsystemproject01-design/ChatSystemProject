@@ -1,30 +1,32 @@
-# Sử dụng Python 3.11 - Phiên bản ổn định nhất cho Socket.IO và Eventlet
+# Sử dụng Python 3.11 làm base image (bản slim để tối ưu dung lượng)
 FROM python:3.11-slim
 
-# Thiết lập thư mục làm việc
-WORKDIR /app
-
-# Cài đặt các thư viện hệ thống cần thiết (cho psycopg2 và các build tool)
+# Cài đặt các thư viện hệ thống cần thiết cho psycopg2 (PostgreSQL) và các C-extensions
 RUN apt-get update && apt-get install -y \
-    build-essential \
+    gcc \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy file requirements và cài đặt thư viện
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Thiết lập thư mục làm việc trong container
+WORKDIR /app
 
-# Copy toàn bộ mã nguồn vào container
+# Sao chép file requirements.txt vào trước để tận dụng Docker cache
+COPY requirements.txt .
+
+# Cài đặt các thư viện Python
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Sao chép toàn bộ mã nguồn vào vùng làm việc
 COPY . .
 
-# Thiết lập biến môi trường
-ENV FLASK_APP=run.py
+# Thiết lập các biến môi trường mặc định (có thể bị ghi đè bởi Fly.io Secrets)
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
 
-# Expose port mặc định để Railway định tuyến traffic chuẩn xác
+# Expose cổng 8080 (Fly.io sẽ route traffic vào cổng này)
 EXPOSE 8080
 
-# Chạy bằng worker 'sync' (Chuẩn nhất để debug 502) và bỏ --preload để tránh lỗi fork không báo trước
-CMD ["sh", "-c", "gunicorn -w 4 --bind 0.0.0.0:${PORT:-8080} --timeout 120 --access-logfile - --error-logfile - wsgi:app"]
+# Chạy app bằng Gunicorn kèm eventlet cho phép xử lý WebSocket Socket.IO mượt mà
+# Do sử dụng Eventlet, ta chỉ nên dùng 1 worker (-w 1) (hoặc dùng Redis nếu muốn nhiều worker)
+CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "--bind", "0.0.0.0:8080", "run:app"]
