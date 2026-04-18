@@ -1,5 +1,11 @@
 # wsgi.py - Entry point cho Gunicorn trên Production
-# KHÔNG monkey_patch ở đây - Gunicorn eventlet worker tự xử lý
+import gevent.monkey
+gevent.monkey.patch_all()
+
+# Xử lý deadlock của psycopg2 trên gevent
+from psycogreen.gevent import patch_psycopg
+patch_psycopg()
+
 from app import create_app
 from app.extensions import socketio
 
