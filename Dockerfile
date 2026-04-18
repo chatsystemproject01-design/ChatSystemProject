@@ -27,5 +27,5 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8080
 
 # Chạy ứng dụng bằng Gunicorn với Worker Eventlet - Chuẩn Production cho Socket.IO
-# Chạy ứng dụng bằng Gunicorn với Worker GeventWebSocket (Chuẩn Production cho Socket.IO)
-CMD ["sh", "-c", "gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 --bind 0.0.0.0:${PORT:-8080} --timeout 120 --keep-alive 60 wsgi:app"]
+# Chạy ứng dụng bằng Gunicorn với Worker Gthread (Hoàn toàn tương thích Python 3.11+ và Database)
+CMD ["sh", "-c", "gunicorn --worker-class gthread -w 2 --threads 50 --bind 0.0.0.0:${PORT:-8080} --timeout 120 --keep-alive 60 wsgi:app"]
