@@ -45,8 +45,8 @@ def init_extensions(app):
     async_mode = app.config.get('SOCKETIO_ASYNC_MODE', 'threading')
     socketio.init_app(app, cors_allowed_origins="*", async_mode=async_mode)
     migrate.init_app(app, db)
-    # Cấu hình CORS an toàn cho Production - Phù hợp với JWT Header (không dùng Cookie)
-    cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
+    # Cấu hình CORS toàn diện - Sửa lỗi Regex r"/api/*" không khớp với /api/v1
+    cors.init_app(app, resources={r"/*": {"origins": "*"}})
     mail.init_app(app)
     jwt.init_app(app)
     swagger.init_app(app)
