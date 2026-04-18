@@ -41,12 +41,25 @@ jwt = JWTManager()
 def init_extensions(app):
     db.init_app(app)
     bcrypt.init_app(app)
-    # Sử dụng async_mode từ config để linh hoạt giữa Local (threading) và Production (eventlet)
+    # Cấu hình danh sách các Domain được phép truy cập (Whitelist)
+    allowed_origins = [
+        "https://fe-chatsystem.onrender.com",
+        "http://localhost:5173",
+        "http://localhost:3000"
+    ]
+    
+    # Cài đặt Socket.IO
     async_mode = app.config.get('SOCKETIO_ASYNC_MODE', 'threading')
-    socketio.init_app(app, cors_allowed_origins="*", async_mode=async_mode)
+    socketio.init_app(app, cors_allowed_origins=allowed_origins, async_mode=async_mode)
+    
     migrate.init_app(app, db)
-    # Cấu hình CORS toàn diện - Sửa lỗi Regex r"/api/*" không khớp với /api/v1
-    cors.init_app(app, resources={r"/*": {"origins": "*"}})
+    
+    # Cài đặt Flask-CORS với Domain cụ thể
+    cors.init_app(app, resources={r"/*": {
+        "origins": allowed_origins,
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }})
     mail.init_app(app)
     jwt.init_app(app)
     swagger.init_app(app)
