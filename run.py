@@ -1,21 +1,14 @@
+# 1. PHẢI LÀ DÒNG ĐẦU TIÊN để tránh lỗi 502/Deadlock trên Railway
+try:
+    import eventlet
+    eventlet.monkey_patch()
+except Exception:
+    pass
+
 import os
 import sys
 import warnings
 import logging
-
-# 1. Tắt toàn bộ cảnh báo phiền phức
-warnings.filterwarnings("ignore")
-
-# 2. Monkey Patch Eventlet (chỉ hiệu quả trên Linux/Railway, Windows sẽ bỏ qua hoặc chạy nhẹ)
-try:
-    import eventlet
-    # Chặn stderr để dấu dòng log "RLock not greened" khi khởi động
-    prev_stderr = sys.stderr
-    sys.stderr = open(os.devnull, 'w')
-    eventlet.monkey_patch()
-    sys.stderr = prev_stderr
-except Exception:
-    pass
 
 # 3. Cấu hình logging: Chỉ hiện Log Request, ẩn Banner khởi động
 logging.getLogger('werkzeug').setLevel(logging.INFO)
