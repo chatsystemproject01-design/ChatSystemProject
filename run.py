@@ -1,17 +1,24 @@
 import os
 import sys
 import warnings
+import logging
 
-# Luôn đặt monkey_patch lên hàng đầu nếu có eventlet (tốt cho Railway/Linux)
+# 1. Tắt toàn bộ cảnh báo phiền phức
+warnings.filterwarnings("ignore")
+
+# 2. Monkey Patch Eventlet (chỉ hiệu quả trên Linux/Railway, Windows sẽ bỏ qua hoặc chạy nhẹ)
 try:
     import eventlet
+    # Chặn stderr để dấu dòng log "RLock not greened" khi khởi động
+    prev_stderr = sys.stderr
+    sys.stderr = open(os.devnull, 'w')
     eventlet.monkey_patch()
-    print(">>> [SYSTEM] Eventlet monkey patch applied.")
-except ImportError:
+    sys.stderr = prev_stderr
+except Exception:
     pass
 
-# Bỏ qua cảnh báo Deprecation để log gọn hơn
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+# 3. Cấu hình logging: Chỉ hiện Log Request, ẩn Banner khởi động
+logging.getLogger('werkzeug').setLevel(logging.INFO)
 
 from app import create_app
 from app.extensions import socketio
@@ -19,21 +26,23 @@ from app.extensions import socketio
 app = create_app()
 
 if __name__ == '__main__':
-    # Railway/Render cung cấp biến PORT qua Environment Variable. 
+    # Tự động nhận diện Port (Local thường là 5000, Railway do hệ thống cấp)
     port = int(os.environ.get('PORT', 5000))
-    
-    # Kiểm tra xem có đang ở chế độ dev không
     is_dev = (app.config.get('FLASK_ENV') == 'development')
     
-    # Chỉ in log server khi bắt đầu (tránh in 2 lần khi dùng reloader)
-    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not is_dev:
-        print(f">>> [SERVER] Ứng dụng đang chạy trên: http://0.0.0.0:{port}", flush=True)
+    # In thông tin Swagger UI đẹp mắt ra Console
+    print("\n" + "="*60)
+    print(f"🚀 SERVER CHAT ĐÃ SẴN SÀNG")
+    print(f"🔗 Localhost Swagger: http://127.0.0.1:{port}/apidocs/")
+    print(f"🔗 Network Swagger:   http://0.0.0.0:{port}/apidocs/")
+    print("="*60 + "\n", flush=True)
 
+    # Chạy Server
     socketio.run(
         app, 
         host='0.0.0.0', 
         port=port, 
         debug=is_dev,
-        use_reloader=is_dev,  # Tự động reload trên Windows, tắt trên Railway để ổn định
-        allow_unsafe_werkzeug=True
+        use_reloader=is_dev,
+        allow_unsafe_werkzeug=True # Cần thiết để không bị lỗi trên môi trường Production
     )

@@ -4,6 +4,7 @@ from pydantic import ValidationError as PydanticValidationError
 from app.schemas.user_schema import AddContactRequestSchema, UpdateProfileRequestSchema, BlockUserRequestSchema
 from app.services.user_service import UserService
 from app.utils.exceptions import ValidationError
+from app.sockets.chat_events import emit_to_user
 
 user_bp = Blueprint('users', __name__, url_prefix='/api/v1/users')
 user_service = UserService()
@@ -157,6 +158,10 @@ def add_contact():
         
         user_service.add_contact(user_id, validated_data.colleagueId)
         
+        # Thông báo realtime cho cả 2 user
+        emit_to_user(user_id, 'contact_updated', {})
+        emit_to_user(validated_data.colleagueId, 'contact_updated', {})
+        
         return jsonify({
             "success": True,
             "message": "Đã thêm vào danh sách liên hệ thành công."
@@ -189,6 +194,10 @@ def remove_contact(id):
     """
     user_id = get_jwt_identity()
     user_service.remove_contact(user_id, id)
+    
+    # Thông báo realtime cho cả 2 user
+    emit_to_user(user_id, 'contact_updated', {})
+    emit_to_user(id, 'contact_updated', {})
     
     return jsonify({
         "success": True,
@@ -231,6 +240,10 @@ def block_user():
         validated_data = BlockUserRequestSchema(**json_data)
         
         user_service.block_user(user_id, validated_data.targetUserId)
+        
+        # Thông báo realtime cho cả 2 user
+        emit_to_user(user_id, 'contact_updated', {})
+        emit_to_user(validated_data.targetUserId, 'contact_updated', {})
         
         return jsonify({
             "success": True,
@@ -294,6 +307,63 @@ def update_profile():
 
     except PydanticValidationError as e:
         raise ValidationError(str(e.errors()))
+
+@user_bp.route('/avatar', methods=['POST'])
+@jwt_required()
+def upload_avatar():
+    """
+    Upload ảnh đại diện lên Supabase
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    consumes:
+      - multipart/form-data
+    parameters:
+      - in: formData
+        name: avatar
+        type: file
+        required: true
+        description: File ảnh đại diện (JPG, PNG, WEBP, GIF - tối đa 5MB)
+    responses:
+      200:
+        description: Upload thành công
+        schema:
+          properties:
+            success:
+              type: boolean
+            message:
+              type: string
+            data:
+              type: object
+              properties:
+                avatarUrl:
+                  type: string
+                  example: "https://xxx.supabase.co/storage/v1/object/public/media/avatars/uuid.jpg"
+      400:
+        description: File không hợp lệ hoặc sai định dạng
+      401:
+        description: Token không hợp lệ
+    """
+    user_id = get_jwt_identity()
+
+    if 'avatar' not in request.files:
+        raise ValidationError("Vui lòng chọn file ảnh để upload.")
+
+    file_obj = request.files['avatar']
+
+    if file_obj.filename == '':
+        raise ValidationError("Tên file không hợp lệ.")
+
+    result = user_service.upload_avatar(user_id, file_obj)
+
+    return jsonify({
+        "success": True,
+        "message": "Cập nhật ảnh đại diện thành công.",
+        "data": result
+    }), 200
+
 
 @user_bp.route('/report', methods=['POST'])
 @jwt_required()

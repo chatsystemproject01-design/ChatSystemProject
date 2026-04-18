@@ -18,6 +18,13 @@ user_repo = UserRepository()
 participant_repo = ParticipantRepository()
 
 
+def emit_to_user(target_user_id, event_name, data=None):
+    """Gửi socket event tới tất cả session (sid) của một user_id cụ thể."""
+    for sid, uid in connected_users.items():
+        if str(uid) == str(target_user_id):
+            socketio.emit(event_name, data or {}, to=sid)
+
+
 # ════════════════════════════════════════════════
 # HELPER: Lấy user_id từ session hiện tại
 # ════════════════════════════════════════════════
@@ -67,9 +74,13 @@ def handle_connect(auth=None):
     try:
         decoded = decode_token(token)
         user_id = decoded['sub']  # flask_jwt_extended lưu identity vào 'sub'
+        
+        # Cập nhật trạng thái vào DB
+        user_repo.update(user_id, status='active')
+        
         connected_users[request.sid] = user_id
         user_rooms[request.sid] = set()
-        print(f'[Socket] Connected: user_id={user_id}, sid={request.sid}')
+        print(f'[Socket] Connected & Active: user_id={user_id}, sid={request.sid}')
     except Exception as e:
         print(f'[Socket] Rejected: {str(e)}')
         disconnect()
@@ -85,14 +96,13 @@ def handle_disconnect():
     Tự động được gọi khi client mất kết nối.
     Dọn dẹp trạng thái và broadcast typing_stop cho tất cả phòng.
     """
-    sid = request.sid
+    # 1. Lấy user_id trước khi dọn dẹp
     user_id = connected_users.get(sid)
 
     if user_id:
         # Broadcast isTyping=False cho tất cả phòng mà user đang ở
         rooms = user_rooms.get(sid, set())
         for room_name in rooms:
-            # Trích xuất conversation_id từ room_name "conversation_123"
             conv_id = room_name.replace("conversation_", "")
             emit('user_typing', {
                 'conversationId': conv_id,
@@ -100,17 +110,25 @@ def handle_disconnect():
                 'isTyping': False
             }, room=room_name)
 
-            # Hủy timer nếu có
             key = f"{user_id}_{conv_id}"
             timer = typing_timers.pop(key, None)
             if timer:
                 timer.cancel()
 
-        print(f'[Socket] Disconnected: user_id={user_id}, sid={sid}')
-
-    # Dọn dẹp bộ nhớ
+    # 2. Dọn dẹp bộ nhớ cho sid hiện tại
     connected_users.pop(sid, None)
     user_rooms.pop(sid, None)
+
+    # 3. KIỂM TRA ĐA KẾT NỐI: Chỉ set offline nếu không còn sid nào khác của user này
+    if user_id:
+        is_still_connected = any(uid == user_id for uid in connected_users.values())
+        
+        if not is_still_connected:
+            from datetime import datetime
+            user_repo.update(user_id, status='offline', last_seen=datetime.utcnow())
+            print(f'[Socket] Disconnected & Truly Offline: user_id={user_id}')
+        else:
+            print(f'[Socket] Disconnected one session, but user_id={user_id} still has other active sessions.')
 
 
 # ════════════════════════════════════════════════

@@ -14,5 +14,6 @@ class UserRepository(BaseRepository):
     def search_users(self, query, current_user_id):
         return self.model.query.filter(
             (self.model.email.ilike(f"%{query}%")) | 
-            (self.model.full_name.ilike(f"%{query}%"))
+            (self.model.full_name.ilike(f"%{query}%")) |
+            (self.model.department.ilike(f"%{query}%"))
         ).filter(self.model.user_id != current_user_id, self.model.is_deleted == False).all()

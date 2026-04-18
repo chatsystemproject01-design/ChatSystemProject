@@ -14,6 +14,7 @@ class User(db.Model):
     avatar_url = db.Column(db.String(255))
     date_of_birth = db.Column(db.Date)
     position = db.Column(db.String(100))
+    department = db.Column(db.String(100))
     password_hash = db.Column(db.String(255), nullable=False)
     status = db.Column(db.String(20), default='active')
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)

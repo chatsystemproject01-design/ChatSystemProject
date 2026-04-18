@@ -11,4 +11,5 @@ class UpdateProfileRequestSchema(BaseModel):
     phoneNumber: str = Field(None, alias="phoneNumber")
     dateOfBirth: str = Field(None, alias="dateOfBirth")
     position: str = Field(None, alias="position")
+    department: str = Field(None, alias="department")
     avatarUrl: str = Field(None, alias="avatarUrl")

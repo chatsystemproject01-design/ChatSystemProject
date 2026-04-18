@@ -23,6 +23,7 @@ class UserService:
             "dateOfBirth": user.date_of_birth.isoformat() if user.date_of_birth else None,
             "avatarUrl": user.avatar_url,
             "position": user.position,
+            "department": user.department,
             "role": user.role.role_name if user.role else None,
             "status": user.status,
             "lastSeen": user.last_seen.isoformat() if user.last_seen else None,
@@ -42,7 +43,8 @@ class UserService:
                     "avatarUrl": colleague.avatar_url,
                     "status": colleague.status,
                     "lastSeen": colleague.last_seen.isoformat() if colleague.last_seen else None,
-                    "position": colleague.position
+                    "position": colleague.position,
+                    "department": colleague.department
                 })
         
         return result
@@ -57,6 +59,7 @@ class UserService:
                 "email": user.email,
                 "avatarUrl": user.avatar_url,
                 "position": user.position,
+                "department": user.department,
                 "status": user.status
             } for user in users
         ]
@@ -75,13 +78,19 @@ class UserService:
         if existing:
             raise ResourceDuplicateError("Người này đã có trong danh sách liên hệ của bạn.")
         
-        # 3. Thêm mới
+        # 3. Thêm mới 2 CHIỀU (Mutual Contact)
         self.contact_repo.create(user_id=user_id, colleague_id=colleague_id)
+        # Tạo chiều ngược lại nếu chưa tồn tại
+        reverse_existing = self.contact_repo.model.query.filter_by(user_id=colleague_id, colleague_id=user_id).first()
+        if not reverse_existing:
+            self.contact_repo.create(user_id=colleague_id, colleague_id=user_id)
         return True
 
     def remove_contact(self, user_id: str, colleague_id: str):
-        success = self.contact_repo.remove_contact(user_id, colleague_id)
-        if not success:
+        # Xóa 2 CHIỀU (Mutual Contact)
+        success_1 = self.contact_repo.remove_contact(user_id, colleague_id)
+        success_2 = self.contact_repo.remove_contact(colleague_id, user_id)
+        if not success_1 and not success_2:
             raise ResourceNotFoundError("Không tìm thấy liên hệ này trong danh sách của bạn.")
         return True
 
@@ -98,8 +107,9 @@ class UserService:
         if not self.blocked_repo.is_blocked(user_id, target_user_id):
             self.blocked_repo.create(user_id=user_id, blocked_user_id=target_user_id)
         
-        # 3. Hủy mối quan hệ trong contacts (nếu có)
+        # 3. Hủy mối quan hệ 2 chiều trong contacts (nếu có)
         self.contact_repo.remove_contact(user_id, target_user_id)
+        self.contact_repo.remove_contact(target_user_id, user_id)
         
         return True
 
@@ -120,6 +130,8 @@ class UserService:
                 raise ValidationError("Ngày sinh không hợp lệ. Định dạng yêu cầu: YYYY-MM-DD.")
         if 'position' in data and data['position'] is not None:
             update_data['position'] = data['position']
+        if 'department' in data and data['department'] is not None:
+            update_data['department'] = data['department']
         if 'avatarUrl' in data and data['avatarUrl'] is not None:
             update_data['avatar_url'] = data['avatarUrl']
             
@@ -128,6 +140,71 @@ class UserService:
             
         self.user_repo.update(user_id, **update_data)
         return True
+
+    def upload_avatar(self, user_id: str, file_obj):
+        """
+        Upload ảnh đại diện lên Supabase, lưu URL vào DB.
+        Chỉ chấp nhận định dạng ảnh: jpg, jpeg, png, webp, gif.
+        Giới hạn kích thước: 5MB.
+        """
+        import os
+        import uuid
+        import filetype
+        from app.utils.media_storage import MediaStorage
+        from app.utils.exceptions import ValidationError as AppValidationError
+
+        # 1. Kiểm tra kích thước (5MB)
+        file_obj.seek(0, os.SEEK_END)
+        size = file_obj.tell()
+        file_obj.seek(0)
+
+        if size > 5 * 1024 * 1024:
+            raise AppValidationError("Kích thước ảnh quá lớn. Tối đa 5MB.")
+
+        # 2. Kiểm tra Magic Bytes - phải là file ảnh thực sự
+        header = file_obj.read(2048)
+        file_obj.seek(0)
+        kind = filetype.guess(header)
+
+        if kind is None:
+            raise AppValidationError("Không thể xác định định dạng file.")
+
+        ALLOWED_IMAGE_MIMES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
+        ALLOWED_IMAGE_EXTS = {'jpg', 'jpeg', 'png', 'webp', 'gif'}
+
+        if kind.mime not in ALLOWED_IMAGE_MIMES or kind.extension not in ALLOWED_IMAGE_EXTS:
+            raise AppValidationError(
+                f"Định dạng '{kind.extension}' không được phép. Chỉ chấp nhận: JPG, PNG, WEBP, GIF."
+            )
+
+        # 3. Upload lên Supabase vào thư mục avatars/
+        try:
+            client = MediaStorage.get_client()
+            from app.config.settings import configs
+
+            ext = f".{kind.extension}"
+            unique_filename = f"avatars/{uuid.uuid4()}{ext}"
+
+            content = file_obj.read()
+            client.storage.from_(configs.SUPABASE_STORAGE_BUCKET).upload(
+                path=unique_filename,
+                file=content,
+                file_options={"content-type": kind.mime}
+            )
+
+            avatar_url = client.storage.from_(configs.SUPABASE_STORAGE_BUCKET).get_public_url(unique_filename)
+        except Exception as e:
+            raise AppValidationError(f"Không thể upload ảnh: {str(e)}")
+
+        # 4. Cập nhật avatar_url vào bảng users
+        user = self.user_repo.get_by_id(user_id)
+        if not user:
+            raise ResourceNotFoundError("Người dùng không tồn tại.")
+
+        self.user_repo.update(user_id, avatar_url=avatar_url)
+
+        return {"avatarUrl": avatar_url}
+
 
     def create_report(self, reporter_id: str, data: dict):
         reported_user_id = data.get('reportedUserId')
