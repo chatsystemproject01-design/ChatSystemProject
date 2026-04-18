@@ -75,8 +75,9 @@ def handle_connect(auth=None):
         decoded = decode_token(token)
         user_id = decoded['sub']  # flask_jwt_extended lưu identity vào 'sub'
         
-        # Cập nhật trạng thái vào DB
-        user_repo.update(user_id, status='active')
+        # Cập nhật trạng thái và thời gian hoạt động cuối vào DB
+        from datetime import datetime
+        user_repo.update(user_id, status='active', last_seen=datetime.utcnow())
         
         connected_users[request.sid] = user_id
         user_rooms[request.sid] = set()

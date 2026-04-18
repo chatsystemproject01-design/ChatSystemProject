@@ -421,32 +421,6 @@ def audit_conversation_messages(conversation_id):
     result = admin_service.get_conversation_audit(admin_id, conversation_id, client_ip)
     return jsonify({"success": True, "data": result}), 200
 
-@admin_bp.route('/reports', methods=['GET'])
-@jwt_required()
-@admin_required()
-def get_reports():
-    """
-    Danh sách báo cáo vi phạm
-    """
-    from flask import request
-    status = request.args.get('status')
-    result = admin_service.get_all_reports(status)
-    return jsonify({"success": True, "data": result}), 200
-
-@admin_bp.route('/reports/<int:id>/action', methods=['POST'])
-@jwt_required()
-@admin_required()
-def handle_report_action(id):
-    """
-    Xử lý báo cáo vi phạm (Duyệt/Khóa/Bỏ qua)
-    """
-    from flask import request
-    admin_id = get_jwt_identity()
-    client_ip = request.remote_addr
-    data = request.get_json()
-    admin_service.handle_report(admin_id, id, data, client_ip)
-    return jsonify({"success": True, "message": "Đã xử lý báo cáo."}), 200
-
 @admin_bp.route('/conversations', methods=['GET'])
 @jwt_required()
 @admin_required()
