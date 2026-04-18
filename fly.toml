@@ -10,8 +10,8 @@ primary_region = "sin"
 [build]
   dockerfile = "Dockerfile"
 
-[deploy]
-  release_command = "python -m flask db upgrade"
+#[deploy]
+#  release_command = "python -m flask db upgrade"
 
 [env]
   FLASK_APP = "run.py"
