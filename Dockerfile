@@ -28,4 +28,4 @@ EXPOSE 8080
 
 # Chạy ứng dụng bằng Gunicorn với Worker Eventlet - Chuẩn Production cho Socket.IO
 # Lưu ý: $PORT là biến môi trường Railway tự cấp
-CMD ["sh", "-c", "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:${PORT:-8080} --timeout 120 --log-level info wsgi:app"]
+CMD ["sh", "-c", "gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 --bind 0.0.0.0:${PORT:-8080} --timeout 120 --log-level info wsgi:app"]

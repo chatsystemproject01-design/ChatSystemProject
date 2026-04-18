@@ -49,7 +49,7 @@ def init_extensions(app):
     ]
     
     # Cài đặt Socket.IO
-    async_mode = app.config.get('SOCKETIO_ASYNC_MODE', 'threading')
+    async_mode = app.config.get('SOCKETIO_ASYNC_MODE', 'gevent')
     socketio.init_app(app, cors_allowed_origins=allowed_origins, async_mode=async_mode)
     
     migrate.init_app(app, db)
