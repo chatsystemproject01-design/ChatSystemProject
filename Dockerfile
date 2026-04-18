@@ -14,6 +14,8 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Cài đặt các thư viện Python
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir eventlet==0.41.0
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Sao chép toàn bộ mã nguồn vào vùng làm việc
