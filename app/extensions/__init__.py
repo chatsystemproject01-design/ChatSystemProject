@@ -48,7 +48,7 @@ def init_extensions(app):
         "http://localhost:3000"
     ]
     
-    # Cài đặt Socket.IO - Bắt buộc dùng threading để né deadlock Gevent trên Python 3.11+
+    # Cài đặt Socket.IO - Dùng threading (Ổn định nhất với Gthread/Sync worker)
     socketio.init_app(app, cors_allowed_origins=allowed_origins, async_mode='threading')
     
     migrate.init_app(app, db)

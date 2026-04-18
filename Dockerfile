@@ -26,5 +26,5 @@ ENV PYTHONUNBUFFERED=1
 # Expose port mặc định để Railway định tuyến traffic chuẩn xác
 EXPOSE 8080
 
-# Bật log bằng --access-logfile - và ép tải code trước bằng --preload để lộ diện mọi lỗi tiềm ẩn
-CMD ["sh", "-c", "gunicorn --worker-class gthread -w 2 --threads 50 --preload --access-logfile - --bind 0.0.0.0:${PORT:-8080} --timeout 120 --keep-alive 60 wsgi:app"]
+# Chạy bằng worker 'sync' (Chuẩn nhất để debug 502) và bỏ --preload để tránh lỗi fork không báo trước
+CMD ["sh", "-c", "gunicorn -w 4 --bind 0.0.0.0:${PORT:-8080} --timeout 120 --access-logfile - --error-logfile - wsgi:app"]

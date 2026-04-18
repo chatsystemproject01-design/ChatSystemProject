@@ -71,6 +71,11 @@ def create_app():
 
     @app.before_request
     def check_maintenance_mode():
+        import sys
+        # Logging cưỡng bức ra stdout để Railway bắt được ngay lập tức
+        sys.stdout.write(f"\n[DEBUG] Request Started: {request.method} {request.path}\n")
+        sys.stdout.flush()
+        
         from flask import request, jsonify
         
         # 1. Trả về 200 OK ngay lập tức cho CORS Preflight (OPTIONS) để không lỗi 502
