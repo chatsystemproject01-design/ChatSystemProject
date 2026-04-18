@@ -76,8 +76,7 @@ def create_app():
         sys.stdout.write(f"\n[DEBUG] Request Started: {request.method} {request.path}\n")
         sys.stdout.flush()
         
-        from flask import request, jsonify
-        
+
         # 1. Trả về 200 OK ngay lập tức cho CORS Preflight (OPTIONS) để không lỗi 502
         if request.method == 'OPTIONS':
             return '', 200
