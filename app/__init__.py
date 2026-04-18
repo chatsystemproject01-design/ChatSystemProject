@@ -61,6 +61,10 @@ def create_app():
     app.register_blueprint(ai_bp)
     app.register_blueprint(admin_bp)
     
+    @app.route('/')
+    def health_check():
+        return jsonify({"status": "healthy", "message": "Internal Chat System API is running"}), 200
+    
     # Centralized error handling
     from app.utils.exceptions import ApplicationError
 
