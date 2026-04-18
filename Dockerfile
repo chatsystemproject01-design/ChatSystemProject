@@ -23,9 +23,8 @@ ENV FLASK_APP=run.py
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
-# Cổng mặc định
-EXPOSE 8080
+# Bỏ chặn EXPOSE cứng để Railway tự động gán PORT động hoàn toàn (tránh xung đột 502)
 
 # Chạy ứng dụng bằng Gunicorn với Worker Eventlet - Chuẩn Production cho Socket.IO
-# Chạy ứng dụng bằng Gunicorn với Worker Gthread (Hoàn toàn tương thích Python 3.11+ và Database)
-CMD ["sh", "-c", "gunicorn --worker-class gthread -w 2 --threads 50 --bind 0.0.0.0:${PORT:-8080} --timeout 120 --keep-alive 60 wsgi:app"]
+# Chạy ứng dụng bằng Gunicorn với Worker Gthread (Sử dụng IPv6 [::] để tương thích hoàn toàn với Load Balancer của Railway)
+CMD ["sh", "-c", "gunicorn --worker-class gthread -w 2 --threads 50 --bind [::]:${PORT:-8080} --timeout 120 --keep-alive 60 wsgi:app"]
