@@ -121,11 +121,17 @@ def create_app():
             "message": error.description
         }), error.code
 
+    @app.after_request
+    def add_cors_headers(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
         import traceback
         traceback.print_exc()
-        # Log error in production
         return jsonify({
             "success": False,
             "error_code": "INTERNAL_SERVER_ERROR",
