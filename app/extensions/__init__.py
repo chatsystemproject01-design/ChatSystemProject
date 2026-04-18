@@ -48,8 +48,9 @@ def init_extensions(app):
         "http://localhost:3000"
     ]
     
-    # Cài đặt Socket.IO - Dùng gevent (ổn định với psycopg2)
-    socketio.init_app(app, cors_allowed_origins=allowed_origins, async_mode='gevent')
+    # Cài đặt Socket.IO - Đọc từ biến môi trường (Local: threading, Production: gevent)
+    async_mode = app.config.get('SOCKETIO_ASYNC_MODE', 'threading')
+    socketio.init_app(app, cors_allowed_origins=allowed_origins, async_mode=async_mode)
     
     migrate.init_app(app, db)
     cors.init_app(app) # Trả về khởi tạo cơ bản
