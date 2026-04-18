@@ -53,13 +53,7 @@ def init_extensions(app):
     socketio.init_app(app, cors_allowed_origins=allowed_origins, async_mode=async_mode)
     
     migrate.init_app(app, db)
-    
-    # Cài đặt Flask-CORS với Domain cụ thể
-    cors.init_app(app, resources={r"/*": {
-        "origins": allowed_origins,
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    }})
+    cors.init_app(app) # Trả về khởi tạo cơ bản
     mail.init_app(app)
     jwt.init_app(app)
     swagger.init_app(app)
